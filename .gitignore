@@ -2,3 +2,4 @@
 vendor
 *.iml
 go-monitor.yml
+config.yml
