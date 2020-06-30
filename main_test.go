@@ -20,11 +20,10 @@ func TestValidate(t *testing.T) {
 		t.Errorf("Looking for %v, got %v", "Not all config variables present", nil)
 	}
 
-	monitor.Config.MessageBirdToken = "test"
-	monitor.Config.MessageBirdSender = "test"
-	monitor.Config.Recipients = "test"
+
+
 	monitor.Config.DefaultTTLSeconds = 1
-	monitor.Config.ServerNiceName = "test"
+
 
 	err = monitor.validate()
 	if err != nil {
