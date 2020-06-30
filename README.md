@@ -35,7 +35,7 @@ Driver based notifications, supports the following
 1. Clone the repo
 2. cd install
 3. sh install.sh
-4. Update configuration in /etc/gomonitor
+4. Update configuration in /etc/go-monitor
 4. systemctl start gomonitor
 ```
 
