@@ -18,6 +18,9 @@ Driver based notifications, supports the following
 
 
 ## Installation/Running 
+
+### Manual
+
 1. `go get github.com/rob121/go-monitor`
 
 2. Update `go-monitor.yml.sample` to include the configuration options desired. 
@@ -26,6 +29,15 @@ Driver based notifications, supports the following
 
 4 ./go-monitor 
 
+### Linux
+
+```
+1. Clone the repo
+2. cd install
+3. sh install.sh
+4. Update configuration in /etc/gomonitor
+4. systemctl start gomonitor
+```
 
 ## Compatibility 
 
