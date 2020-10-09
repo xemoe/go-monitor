@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/rob121/go-monitor)](https://goreportcard.com/report/github.com/rob121/go-monitor)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xemoe/go-monitor)](https://goreportcard.com/report/github.com/xemoe/go-monitor)
 
 # Overview 
 
@@ -21,13 +21,11 @@ Driver based notifications, supports the following
 
 ### Manual
 
-1. `go get github.com/rob121/go-monitor`
+1. `go get github.com/xemoe/go-monitor`
 
-2. Update `go-monitor.yml.sample` to include the configuration options desired. 
+2. `cp config.yml.default config.yml`
 
-3. Rename config to `config.yml`.
-
-4 ./go-monitor 
+3 ./go-monitor 
 
 ### Linux
 

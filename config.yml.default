@@ -1,0 +1,14 @@
+processes: [ "list", "of", "processes", "tcp://localhost:8000", "http://keyshift.co" ]
+notificationdriver: "pushover"
+config:
+   defaultttlseconds: 3600
+   notifyservicereturn: true
+   checkfrequencyseconds: 5
+drivers:
+   messagebird:
+     token: "test_TOKEN"
+     sender: "+sender-number"
+     recipients: "+recipient-numbers,+one-or-many"
+   pushover: 
+     token: "test_TOKEN"
+     recipient: "test_RECIPIENT"

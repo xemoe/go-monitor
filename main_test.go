@@ -2,37 +2,60 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"testing"
+
+	m "github.com/xemoe/go-monitor/monitor"
 )
 
-func TestValidate(t *testing.T) {
-	monitor := Monitor{}
+func lineCounter(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
 
-	err := monitor.validate()
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
+}
+
+func TestValidate(t *testing.T) {
+	monitor := m.Monitor{}
+
+	err := monitor.Validate()
 	if err == nil {
 		t.Errorf("Looking for %v, got %v", "We need to monitor at least one process", nil)
 	}
 
 	monitor.Processes = []string{"test"}
-
-	err = monitor.validate()
+	//
+	// @TODO validate required config
+	//
+	/**
+	err = monitor.Validate()
 	if err == nil {
 		t.Errorf("Looking for %v, got %v", "Not all config variables present", nil)
 	}
-
-
+	**/
 
 	monitor.Config.DefaultTTLSeconds = 1
 
-
-	err = monitor.validate()
+	err = monitor.Validate()
 	if err != nil {
 		t.Errorf("Looking for %v, got %v", nil, err)
 	}
 }
 
 func TestGetServerInfo(t *testing.T) {
-
+	// @TODO
 }
 
 func TestCheckProc(t *testing.T) {
