@@ -1,12 +1,15 @@
 #!/bin/sh
 
+set -euo pipefail
+
 echo "Installing for linux"
 
-wget -O /usr/local/bin/go-monitor  "https://github.com/xemoe/go-monitor/releases/download/v.0.1/go-monitor-linux-amd64"
+cp ./bin/go-monitor /usr/local/bin/go-monitor
 chmod +x /usr/local/bin/go-monitor
-mkdir /etc/go-monitor
 
-cp ../config.yml.default /etc/go-monitor/
+test ! -d /etc/g-monitor && mkdir /etc/go-monitor || true
+test ! -f /etc/g-monitor/config.yml && cp ../config.yml.default /etc/go-monitor/ || true
+
 cp gomonitor.service /etc/systemd/system/
 
 systemctl enable gomonitor
