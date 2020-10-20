@@ -2,12 +2,6 @@ package monitor
 
 import (
 	"errors"
-	"fmt"
-	"log"
-	"net"
-	"net/http"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,22 +10,16 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
 	"github.com/xemoe/go-monitor/pkg/ndriver"
+
+	nested "github.com/antonfisher/nested-logrus-formatter"
+	log "github.com/sirupsen/logrus"
 )
 
 var DriverRegistry map[string]interface{}
 
-type NotificationDriver interface {
+type r interface {
 	Init() error
 	Alert(proc string, server ServerInfo, state string, c *cache.Cache) error
-}
-
-type ServerInfo struct {
-	Host string
-	Ip   string
-}
-
-func (s ServerInfo) String() string {
-	return s.Host + " with IP " + s.Ip
 }
 
 //
@@ -55,6 +43,21 @@ type Monitor struct {
 // เพิ่ม Notification Driver
 //
 func init() {
+
+	log.SetFormatter(&nested.Formatter{
+		HideKeys:       false,
+		NoColors:       false,
+		NoFieldsColors: false,
+		ShowFullLevel:  true,
+		FieldsOrder:    []string{"process", "status"},
+	})
+
+	log.SetLevel(log.DebugLevel)
+
+	//
+	// Enable to show caller
+	//
+	// log.SetReportCaller(true)
 }
 
 //
@@ -78,7 +81,9 @@ func Start(configPath string) {
 	//
 	monitor.writeToConsole = true
 
-	monitor.Println("Go Monitor running")
+	log.WithFields(log.Fields{
+		"status": STATUS_START,
+	}).Info("Go Monitor running")
 
 	if val, ok := DriverRegistry[monitor.NotificationDriver]; ok {
 
@@ -102,7 +107,7 @@ func Start(configPath string) {
 
 	server, err := monitor.getServerInfo()
 	if err != nil {
-		monitor.Println("Error getting server information, using NIL")
+		log.Errorf("Error: getting server information, using NIL")
 		server = ServerInfo{}
 	}
 
@@ -188,10 +193,11 @@ func load(path string) *viper.Viper {
 	v.WatchConfig()
 
 	v.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
+
+		log.Warnf("Config file changed: %s", e.Name)
 
 		if len(v.AllSettings()) == 0 {
-			fmt.Println("*** Invalid Config, you have an error ****")
+			log.Error("*** Invalid Config, you have an error ****")
 		}
 	})
 
@@ -207,18 +213,6 @@ func load(path string) *viper.Viper {
 	return v
 }
 
-func (monitor *Monitor) Println(message string) {
-	if monitor.writeToConsole {
-		log.Println(message)
-	}
-}
-
-func (monitor *Monitor) Printf(message string, a ...interface{}) {
-	if monitor.writeToConsole {
-		log.Printf(message, a...)
-	}
-}
-
 func createMonitorFromFile(configFile string) (monitor *Monitor, err error) {
 
 	config := load(configFile)
@@ -231,155 +225,6 @@ func createMonitorFromFile(configFile string) (monitor *Monitor, err error) {
 	err = monitor.Validate()
 
 	return monitor, err
-}
-
-func (monitor *Monitor) Validate() error {
-	//
-	// Do validation checks
-	//
-	if len(monitor.Processes) < 1 {
-		return errors.New("Config: We need to monitor at least one process")
-	} else {
-		monitor.Printf("Processes %s\n", monitor.Processes)
-	}
-
-	if monitor.Config.DefaultTTLSeconds == 0 {
-		monitor.Config.DefaultTTLSeconds = 30000
-	}
-	if monitor.Config.CheckFrequencySeconds == 0 {
-		monitor.Config.CheckFrequencySeconds = 60
-	}
-
-	monitor.Printf("DefaultTTLSeconds %d\n", monitor.Config.DefaultTTLSeconds)
-	monitor.Printf("CheckFrequencySeconds %d\n", monitor.Config.CheckFrequencySeconds)
-
-	return nil
-}
-
-func (monitor *Monitor) getServerInfo() (server ServerInfo, err error) {
-
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return ServerInfo{}, err
-	}
-
-	var ip net.IP
-	for _, i := range ifaces {
-
-		addrs, err := i.Addrs()
-		if err != nil {
-			return ServerInfo{}, err
-		}
-
-		for _, addr := range addrs {
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-		}
-	}
-
-	//
-	// Get hostname
-	//
-	host, err := os.Hostname()
-	if err != nil {
-		return ServerInfo{}, err
-	}
-
-	return ServerInfo{Host: host, Ip: ip.String()}, nil
-
-}
-
-func (monitor *Monitor) checkProcess(processName string, procErrChan chan string, procSuccessChan chan string, wg *sync.WaitGroup) {
-	if strings.HasPrefix(processName, "tcp://") {
-		monitor.checkTcpSocket(strings.TrimPrefix(processName, "tcp://"), procErrChan, procSuccessChan, wg)
-	} else if strings.HasPrefix(processName, "http://") || strings.HasPrefix(processName, "https://") {
-		monitor.checkHttpEndpoint(processName, procErrChan, procSuccessChan, wg)
-	} else {
-		monitor.checkLocalProcess(processName, procErrChan, procSuccessChan, wg)
-	}
-}
-
-func (monitor *Monitor) checkTcpSocket(tcpAddress string, procErrChan chan string, procSuccessChan chan string, wg *sync.WaitGroup) {
-	monitor.Printf("Checking for tcp socket %s\n", tcpAddress)
-
-	conn, err := net.Dial("tcp", tcpAddress)
-	defer wg.Done()
-	defer func() {
-		if conn != nil {
-			conn.Close()
-		}
-	}()
-
-	if err != nil {
-		monitor.Printf("Error: unable to open socket! %s\n", tcpAddress)
-		procErrChan <- tcpAddress
-		procSuccessChan <- ""
-		return
-	} else {
-		monitor.Printf("Successful connection to %s \n", tcpAddress)
-	}
-
-	//
-	// Doing this keeps the channel open
-	// If this is not done, the channel closes and there is a fatal error
-	//
-	procErrChan <- ""
-	procSuccessChan <- tcpAddress
-}
-
-func (monitor *Monitor) checkHttpEndpoint(httpEndpoint string, procErrChan chan string, procSuccessChan chan string, wg *sync.WaitGroup) {
-
-	monitor.Printf("Checking http endpoint %s\n", httpEndpoint)
-	defer wg.Done()
-	resp, err := http.DefaultClient.Get(httpEndpoint)
-
-	if err != nil {
-		monitor.Printf("Error: unable to connect to %s - %s\n", httpEndpoint, err.Error())
-		procErrChan <- httpEndpoint
-		procSuccessChan <- ""
-		return
-	} else if resp.Status != "200 OK" {
-		monitor.Printf("Error: non 200 status from %s - %s\n", httpEndpoint, resp.Status)
-		procErrChan <- httpEndpoint
-		procSuccessChan <- ""
-		return
-	} else {
-		monitor.Printf("%s returns 200 OK\n", httpEndpoint)
-	}
-
-	//
-	// Doing this keeps the channel open
-	// If this is not done, the channel closes and there is a fatal error
-	//
-	procErrChan <- ""
-	procSuccessChan <- httpEndpoint
-}
-
-func (monitor *Monitor) checkLocalProcess(processName string, procErrChan chan string, procSuccessChan chan string, wg *sync.WaitGroup) {
-
-	monitor.Printf("Checking for process %s\n", processName)
-
-	defer wg.Done()
-
-	pid, _, _ := findProcess(processName)
-
-	if pid == 0 {
-		monitor.Printf("Error: no process %s found running!\n", processName)
-		procErrChan <- processName
-		procSuccessChan <- ""
-		return
-	}
-
-	//
-	// Doing this keeps the channel open
-	// If this is not done, the channel closes and there is a fatal error
-	//
-	procErrChan <- ""
-	procSuccessChan <- processName
 }
 
 func findProcess(key string) (int, string, error) {
@@ -400,103 +245,4 @@ func findProcess(key string) (int, string, error) {
 	}
 
 	return pid, pname, err
-}
-
-//
-// NotifyProcError sends a notification for a given process
-//
-func (monitor *Monitor) notifyProcError(proc string, server ServerInfo, c *cache.Cache) {
-
-	if len(proc) > 0 {
-		monitor.Printf("### ERROR: proc %s not running!\n", proc)
-
-		//
-		// Check cache for process
-		//
-		_, found := c.Get(proc)
-		if found {
-			//
-			// Wait until expiry before another notification
-			//
-			monitor.Printf("Alert previously sent for  %s, skipping...\n", proc)
-			return
-		}
-
-		//
-		// If proc not in cache, store in cache
-		//
-		c.Set(proc, true, cache.DefaultExpiration)
-
-		//
-		// Send text message
-		//
-		// Plugin stuff here
-		//
-		if val, ok := DriverRegistry[monitor.NotificationDriver]; ok {
-
-			err := ndriver.Call(val, "Alert", monitor, proc, server, "DOWN")
-			if err != nil {
-				log.Printf("Error: %s", err)
-				return
-
-			}
-
-		} else {
-			log.Println("Driver Not Available")
-			return
-		}
-
-		monitor.Println("Down Notification sent!")
-	}
-}
-
-func (monitor *Monitor) notifyProcSuccess(proc string, server ServerInfo, c *cache.Cache) {
-
-	if !monitor.Config.NotifyServiceReturn {
-		//
-		// Disabled notifications when the service comes back "up"
-		//
-		return
-	}
-
-	if len(proc) > 0 {
-		monitor.Printf("### Success: proc %s is running!\n", proc)
-
-		//
-		// Check cache for process
-		//
-		_, found := c.Get(proc)
-		if !found {
-			//
-			// Wait until expiry before another notification
-			//
-			monitor.Printf("Process %s up, no notification for up sent\n", proc)
-			return
-		}
-
-		//
-		// Send text message
-		//
-		// Plugin stuff here
-		//
-		if val, ok := DriverRegistry[monitor.NotificationDriver]; ok {
-
-			err := ndriver.Call(val, "Alert", monitor, proc, server, "UP")
-			if err != nil {
-				log.Printf("Error: %s", err)
-				return
-
-			}
-
-		} else {
-			log.Println("Driver Not Available")
-			return
-		}
-
-		//
-		// If proc  in cache, delete, indicator its 'UP'
-		//
-		c.Delete(proc)
-		monitor.Println("Up Notification sent!")
-	}
 }

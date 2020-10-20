@@ -6,6 +6,7 @@ require (
 	9fans.net/go v0.0.2 // indirect
 	github.com/alecthomas/gometalinter v3.0.0+incompatible // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/antonfisher/nested-logrus-formatter v1.3.0
 	github.com/davidrjenni/reftools v0.0.0-20191222082827-65925cf01315 // indirect
 	github.com/fatih/gomodifytags v1.7.0 // indirect
 	github.com/fatih/motion v1.1.0 // indirect
@@ -30,13 +31,14 @@ require (
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/peterh/liner v1.2.0 // indirect
 	github.com/rogpeppe/godef v1.1.2 // indirect
-	github.com/sirupsen/logrus v1.7.0 // indirect
+	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.0
 	github.com/stamblerre/gocode v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/zmb3/gogetdoc v0.0.0-20190228002656-b37376c5da6a // indirect
+	github.com/zput/zxcTool v1.3.6
 	go.starlark.net v0.0.0-20201006213952-227f4aabceb5 // indirect
 	golang.org/x/arch v0.0.0-20201008161808-52c3e6f60cff // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect

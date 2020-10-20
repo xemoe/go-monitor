@@ -2,7 +2,6 @@ package drivers
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gregdel/pushover"
 	"github.com/xemoe/go-monitor/pkg/monitor"
@@ -12,13 +11,10 @@ type PushoverDriver struct {
 }
 
 func (pd PushoverDriver) Init() error {
-	log.Println("Init PushOver Driver!")
 	return nil
 }
 
 func (pd PushoverDriver) Alert(m *monitor.Monitor, proc string, server monitor.ServerInfo, state string) error {
-
-	log.Println("Sending Alert via Pushover")
 
 	conf := m.Drivers["pushover"].(map[string]interface{})
 
