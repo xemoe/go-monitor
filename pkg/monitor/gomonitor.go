@@ -22,6 +22,10 @@ type r interface {
 	Alert(proc string, server ServerInfo, state string, c *cache.Cache) error
 }
 
+const (
+	DEFAULT_CONFIG_PATH = "/etc/go-monitor/"
+)
+
 //
 // All these values should be in lowercase in the yaml file
 // See config.yml.default
@@ -167,6 +171,7 @@ func Start(configPath string) {
 }
 
 func load(path string) *viper.Viper {
+
 	v := viper.New()
 
 	//
@@ -183,7 +188,7 @@ func load(path string) *viper.Viper {
 	// path to look for the config file in
 	// ค่าพื้นฐานของตำแหน่งที่เก็บ configuration file
 	//
-	v.AddConfigPath("/etc/go-monitor/")
+	v.AddConfigPath(DEFAULT_CONFIG_PATH)
 
 	//
 	// optionally look for config in the working directory
