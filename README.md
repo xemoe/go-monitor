@@ -15,6 +15,7 @@ Driver based notifications, supports the following
 
 * Message bird [MessageBird](https://www.messagebird.com/)
 * Pushover 
+* WebHook
 
 
 ## Installation/Running 
