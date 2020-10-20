@@ -1,6 +1,7 @@
 package drivers
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -27,10 +28,12 @@ func (wh WebHookDriver) Alert(m *monitor.Monitor, proc string, server monitor.Se
 	// - apiurl
 	// - authToken
 	// - sender
+    // - skiphttpsverify: "yes|no"
 	//
 	apiUrl := conf["apiurl"].(string)
 	authToken := conf["authtoken"].(string)
 	sender := conf["sender"].(string)
+	skipHttpsVerify := conf["skiphttpsverify"].(string) == "yes"
 
 	//
 	// Send text message
@@ -47,9 +50,13 @@ func (wh WebHookDriver) Alert(m *monitor.Monitor, proc string, server monitor.Se
 
 	m.Debugf(v.Encode())
 
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipHttpsVerify},
+	}
 	timeout := time.Duration(5 * time.Second)
 	client := &http.Client{
-		Timeout: timeout,
+		Transport: tr,
+		Timeout:   timeout,
 	}
 
 	req, _ := http.NewRequest("POST", urlStr, &rb)
